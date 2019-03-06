@@ -1,12 +1,14 @@
-* capital bosses (deal 3 dmg)
+* image to README
 
-ij
+
+* capital bosses
+* Dark Lord fight!
+
 bdfhkl(t)
 gjpqy
 
 * dungeons?
-* stones that full heal, increase max hp or mp by 1, ...
-   maybe not stones but capital bosses?
+
 COLOR_BLACK
 COLOR_RED     full HP
 COLOR_GREEN   +1 maxHP
@@ -22,16 +24,4 @@ COLOR_WHITE   free whirlwind until level up
 
 * special mob abilities:
    tele
-   summon?
    dig
-   drain maxHP, MP
-   freeze you
-   swap HP and MP
-   immortal except whirl
-COLOR_RED
-COLOR_GREEN
-COLOR_YELLOW
-COLOR_BLUE
-COLOR_MAGENTA 2 dmg
-COLOR_CYAN
-COLOR_WHITE   invisible?
