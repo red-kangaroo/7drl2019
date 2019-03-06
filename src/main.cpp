@@ -305,8 +305,8 @@ void startScreen()
 	attron(COLOR_PAIR(2));
   move(0, (WIDTH / 2) - 7);
 	addstr("ENDLESS DESCENT");
-  move(1, (WIDTH / 2) - 15);
-  addstr("INTO THE DARK AND DANK DUNGEONS");
+  move(1, (WIDTH / 2) - 18);
+  addstr("INTO THE DARK AND DANGEROUS DUNGEONS");
   move(2, (WIDTH / 2) - 24);
   addstr("OF THE MOST REPREHENSIBLE ALPHABETICAL OVERLORD\n\n");
 	attroff(COLOR_PAIR(2));
