@@ -1,9 +1,10 @@
-<center>
+<div align="center">
+
 # Endless Descent
 # Into the Dark and Dangerous Dungeons
 # of the
 # Most Reprehensible Alphabetical Overlord
-</center>
+</div>
 
 Simple, silly coffebreak roguelike for the Seven Day Roguelike Challenge 2019.
 
