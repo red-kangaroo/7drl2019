@@ -6,9 +6,9 @@
 #### Most Reprehensible Alphabetical Overlord:
 ##### Quest for Gore and Vengenace
 </div>
-
-
-
+<br/>
+<br/>
+<br/>
 Simple, silly coffebreak roguelike for the Seven Day Roguelike Challenge 2019.
 
 
