@@ -1,27 +1,13 @@
 * image to README
-
-
-* capital bosses
 * Dark Lord fight!
+* dungeon generator?
+* express elevators?
 
-bdfhkl(t)
-gjpqy
+* minor special powers for groups:
+   bdfhkl(t)
+   gjpqy
+* invulnerability (god mode?)
+* blindness
 
-* dungeons?
-
-COLOR_BLACK
-COLOR_RED     full HP
-COLOR_GREEN   +1 maxHP
-COLOR_YELLOW  instant level up
-COLOR_BLUE    full MP
-COLOR_MAGENTA +1 maxMP
-COLOR_CYAN    free teleport until level up
-COLOR_WHITE   free whirlwind until level up
-   time stop
-
-* level up tips
-* express elevators
-
-* special mob abilities:
-   tele
-   dig
+if(random(1, 100) < level)
+  maze

@@ -19,15 +19,18 @@ const int MAX_MOBS = 256;
 const int DRUNK_STEPS = 5000;
 
 // Version number
-static const char VERSION[] = "v0.2";
+static const char VERSION[] = "v0.3";
 
 // Player Stats and such
+int x, y;
 /*#ifdef DEBUG
 int maxhp = 999, hp = maxhp, mp = 10, maxmp = 10;
-int timeStop = 0, kills = 0, totalKills = 0, level = 1;
+int timeStop = 0, kills = 0, totalKills = 0, level = 89;
+bool freeWait = true;
 #else*/
 int maxhp = 10, hp = maxhp, mp = 0, maxmp = 10;
 int timeStop = 0, kills = 0, totalKills = 0, level = 1;
+bool freeWait = false;
 //#endif
 
 char map[WIDTH][HEIGHT];
@@ -43,10 +46,16 @@ typedef struct
 MOB mobs[MAX_MOBS];
 
 // This should work as a more uniformly distributed random number generator than
-// the basic rand() function.
+// the basic rand() function. Maybe.
 int random(int min, int max)
 {
 	return (min + rand() / (RAND_MAX / (max - min) + 1));
+}
+
+// 50/50
+bool rand_2()
+{
+	return (rand() % 2 == 0);
 }
 
 bool tryMove(int m, int n, bool kill)
@@ -67,29 +76,54 @@ bool tryMove(int m, int n, bool kill)
 			{
 				if(isupper(mobs[i].mob_pic))
 				{
-					// TODO: Rewards for killing bosses.
+					// Rewards for killing bosses:
+					// Always give small increase to stats.
+					rand_2() ? (maxhp += 1) : (maxmp += 1);
+
+					// More specific rewards.
 					switch (mobs[i].mob_RGB)
 					{
-						case 1: // COLOR_WHITE
-						case 2: // COLOR_RED
+						case 1: maxhp += 1; break; // COLOR_WHITE
+						case 2: hp = maxhp; break; // COLOR_RED
 						case 3: // COLOR_GREEN
+						{
+							if(timeStop > 0)
+							{
+								// Green is immune to cheap tricks.
+								return false;
+							}
+							else
+							  timeStop = 10;
+							break;
+						}
 						case 4: // COLOR_YELLOW
+						{
+							hp += 2;
+							mp += 1;
+							break;
+						}
 						case 5: // COLOR_BLUE
-						  break;
+						{
+							maxhp += 1;
+							maxmp += 1;
+							break;
+						}
+						case 6: freeWait = true; break; // COLOR_MAGENTA
 						case 7: // COLOR_CYAN
 						{
 							mobs[i].mob_pic = tolower(mobs[i].mob_pic); // Make the letter lowercase.
 							timeStop -= 1; // Loose one turn, otherwise it would return as not
 							               // taking any time.
-
-							return false; // This should work instead of break, right?
+              maxmp += 1;    // Still gain a reward as you technically "killed" it.
+							return false;  // This should work instead of break, right?
 						}
 						case 8: // COLOR_BLACK
 						{
 							// Cannot be harmed by bump attack.
+							// Reward is implemented in whirlwind attack code.
 							return false;
 						}
-						default: break;
+						default: freeWait = true; break;
 					}
 				}
 
@@ -121,6 +155,27 @@ bool tryMove(int m, int n, bool kill)
 	return false;
 }
 
+bool ghostMove(int m, int n)
+{
+	if(m < 0 || m >= WIDTH || n < 0 || n >= HEIGHT)
+	  return false;
+
+	for(int i = 0; i < MAX_MOBS; i++)
+	{
+		if(mobs[i].mob_x == m && mobs[i].mob_y == n)
+		{
+			if(mobs[i].mob_pic == ' ')
+			{
+				continue;
+			}
+
+		  return false;
+		}
+	}
+
+	return true;
+}
+
 void mobAttack(int i)
 {
   if(mobs[i].mob_RGB == 6) // magenta
@@ -132,7 +187,7 @@ void mobAttack(int i)
     hp -= 1;
   }
 
-  // Letters with dots drain MP.
+  // Letters with tittles drain MP.
 	if((mobs[i].mob_pic == 'i' || mobs[i].mob_pic == 'j') && mp > 0)
 	{
 		mp -= 1;
@@ -147,10 +202,21 @@ void mobAttack(int i)
 				maxhp -= 1;
 				break;
 			}
-			// TODO
 			case 2: // COLOR_RED
+			{
+				do // Teleport player
+				{
+					x = random(1, (WIDTH - 1));
+					y = random(1, (HEIGHT - 1));
+				} while(!tryMove(x, y, false));
+
+				break;
+			}
 			case 3: // COLOR_GREEN
-			  break;
+			{
+				maxmp -= 1;
+				break;
+			}
 			case 4: // COLOR_YELLOW
 			{
 				// Switch hp and mp, which can be lethal!
@@ -159,15 +225,14 @@ void mobAttack(int i)
         hp = hp - mp;
 				break;
 			}
-			default: break;
-			// Blue, cyan, magenta and black have effects elsewhere.
+			default: break; // Blue, cyan, magenta and black have effects elsewhere.
 		}
 	}
 
   return;
 }
 
-void mobMove(int x, int y)
+void mobMove()
 {
 	for(int i = 0; i < MAX_MOBS; i++)
 	{
@@ -204,18 +269,21 @@ void mobMove(int x, int y)
 				}
 			}
 
-			// TODO
-			/*
-			// 'X' teleports around.
-			if(mobs[i].mob_pic == 'x' && random(1, 10) == 1)
+			if(mobs[i].mob_RGB == 2 && random(1, 10) == 1) // Capital red
 			{
-				do
+				int p, q;
+
+				do // Teleport
 				{
-					mobs[i].mob_x = random(1, (WIDTH - 1));
-					mobs[i].mob_y = random(1, (HEIGHT - 1));
-				} while(!tryMove(mobs[i].mob_x, mobs[i].mob_y, false));
+					p = random(1, (WIDTH - 1));
+					q = random(1, (HEIGHT - 1));
+				} while(!tryMove(p, q, false));
+
+				mobs[i].mob_x = p;
+				mobs[i].mob_y = q;
+
+				continue; // Pass the turn.
 			}
-			*/
 		}
 
 		// Get direction to move closer to player.
@@ -264,9 +332,64 @@ void mobMove(int x, int y)
 				}
 				break;
 			}
+			case 'x': case 'X': // X can phase.
+			{
+				if(rand_2())
+				{
+					if(ghostMove(m1, mobs[i].mob_y))
+					{
+						if(m1 == x && mobs[i].mob_y == y)
+						{
+							mobAttack(i);
+						}
+						else
+						{
+							mobs[i].mob_x = m1;
+						}
+					}
+					else if(ghostMove(mobs[i].mob_x, n1))
+					{
+						if(mobs[i].mob_x == x && n1 == y)
+						{
+							mobAttack(i);
+						}
+						else
+						{
+							mobs[i].mob_y = n1;
+						}
+					}
+				}
+				else
+				{
+					if(ghostMove(mobs[i].mob_x, n1))
+					{
+						if(mobs[i].mob_x == x && n1 == y)
+						{
+							mobAttack(i);
+						}
+						else
+						{
+							mobs[i].mob_y = n1;
+						}
+					}
+					else if(ghostMove(m1, mobs[i].mob_y))
+					{
+						if(m1 == x && mobs[i].mob_y == y)
+						{
+							mobAttack(i);
+						}
+						else
+						{
+							mobs[i].mob_x = m1;
+						}
+					}
+				}
+
+				break;
+			}
 			default:
 			{
-				if(random(1,2) == 1)
+				if(rand_2())
 				{
 					if(tryMove(m1, mobs[i].mob_y, false))
 					{
@@ -315,8 +438,9 @@ void mobMove(int x, int y)
 							mobs[i].mob_x = m1;
 						}
 					}
-					break;
 				}
+
+				break;
 			}
 		}
 	}
@@ -333,7 +457,7 @@ int reqKills()
 	  return i;
 }
 
-void makeMap(int x, int y)
+void makeMap()
 {
 	int m,n,rng;
 
@@ -361,7 +485,11 @@ void makeMap(int x, int y)
 		}
 	}
 
-	for(int i = 0; i < reqKills(); i++)
+	int mob_no = reqKills();
+	if(level % 2 == 0) // Even floors have a bonus boss.
+	  mob_no += 1;
+
+	for(int i = 0; i < mob_no; i++)
 	{
 		if(i >= MAX_MOBS)
 		  break;
@@ -378,7 +506,7 @@ void makeMap(int x, int y)
     if((level % 2 == 0) && i == 0) // Add one capital boss per even floor.
 		{
 			mobs[i].mob_pic = (char)random(65, 90);
-			mobs[i].mob_RGB = random(1, 8);
+			mobs[i].mob_RGB = random(1, 8); // Hmm, I can't seem to randomly get black boss...
 		}
 		else
 		{
@@ -450,9 +578,50 @@ void startScreen()
 	getch();
 }
 
+void eraseLastLine()
+{
+	move(23, 0);
+	printw("                                                                                ");
+	return;
+}
+
+void getTip()
+{
+	attron(COLOR_PAIR(5));
+	switch (random(1, 22))
+	{
+		case 1: addstr("You cannot have more mana than maximum, so use it."); break;
+		case 2: addstr("The dungeon is not actually endless. The Dark Lord awaits."); break;
+		case 3: addstr("There is a capital boss on every even level."); break;
+		case 4: addstr("Killing bosses will grant you various rewards."); break;
+		case 5: addstr("Magenta monsters deal double damage."); break;
+		case 6: addstr("Cyan bosses have two lives."); break;
+		case 7: addstr("Black bosses cannot be harmed by bump attacks."); break;
+		case 8: addstr("Yellow bosses swap your health and mana scores. Beware of sudden death!"); break;
+		case 9: addstr("White bosses will drain your maximum health!"); break;
+		case 10: addstr("Blue bosses can summon monsters."); break;
+		case 11: addstr("Red bosses possess the power of teleportation."); break;
+		case 12: addstr("Green bosses are antimagic."); break;
+		case 13: addstr("Letters with a tittle drain mana."); break;
+		case 14: addstr("Vowels can move diagonally."); break;
+		case 15: addstr("Xs can ghost through walls."); break;
+		case 16: addstr("Level 100 is very special."); break;
+		case 17: addstr("Use whirlwind attack to prevent getting swarmed."); break;
+		case 18: addstr("Don't hesitate to teleport in a pickle."); break;
+		case 19: addstr("Frozen time may help against lines of enemies. But it will run out."); break;
+		case 20: addstr("Waiting is not free, unless it is."); break;
+		case 21: addstr("Sometimes, you are lucky."); break;
+		case 22: addstr("Your whirlwind attack will eventually improve."); break;
+		default: addstr("You will die."); break;
+	}
+	attroff(COLOR_PAIR(5));
+	return;
+}
+
 /* MAIN LOOP */
 int main(void)
 {
+	printf("Descending into the dungeon...\n");
 	srand(time(0)); // Set seed for random generation.
 
 	initscr(); /* Start curses mode. */
@@ -466,7 +635,6 @@ int main(void)
   startScreen();
 
 	bool gameOn = true;
-	int x, y;
 
 	// Initialize player position
 	x = random(1, (WIDTH - 1));
@@ -482,7 +650,7 @@ int main(void)
 	}
 
   // Create dungeon
-	makeMap(x, y);
+	makeMap();
 
 	while(gameOn)
 	{
@@ -494,7 +662,7 @@ int main(void)
 			}
 
 		if(timeStop <= 0)
-			mobMove(x, y);
+			mobMove();
 		else
 			timeStop -= 1;
 
@@ -515,10 +683,28 @@ int main(void)
 			mp = maxmp;
 
 		move(22, 0);
-		printw("Health: %i/%i  Mana: %i/%i  Kills: %i/%i  Level: %i", hp, maxhp, mp, maxmp, kills, reqKills(), level);
+		printw("Health: %i/%i  Mana: %i/%i  Kills: %i/%i  Level: %i  ", hp, maxhp, mp, maxmp, kills, reqKills(), level);
+
 		// TODO: Color Health and Mana?
 		move(23, 0);
 		printw("   (.)wait   (t)eleport   (w)hirlwind attack   (f)reeze time   (h)eal   (q)uit");
+
+    // Status effects
+		if(timeStop > 0)
+		{
+			move(22, WIDTH - 20);
+			attron(COLOR_PAIR(7));
+			addstr("Time stop");
+			attroff(COLOR_PAIR(7));
+		}
+		if(freeWait)
+		{
+			move(22, WIDTH - 10);
+			attron(COLOR_PAIR(3));
+			addstr("Free wait");
+			attroff(COLOR_PAIR(3));
+		}
+
 		// BUG workaround:
 		move(0, 0);
 		printw("##");
@@ -581,9 +767,11 @@ int main(void)
 				}
 				case '.': // wait
 				{
-					if(mp < 1) break;
+					if(mp < 1 && !freeWait) break;
 
-					mp -= 1;
+          if(!freeWait)
+						mp -= 1;
+
 					input = true;
 					break;
 				}
@@ -633,15 +821,32 @@ int main(void)
 				{
 					if(mp < 3) break;
 
-					for(int m = x - 1; m <= x + 1; m++)
-						for(int n = y - 1; n <= y + 1; n++)
+          // Increase reach every 30 floors.
+					int reach = 1;
+					reach += level / 30;
+
+					for(int m = x - reach; m <= x + reach; m++)
+						for(int n = y - reach; n <= y + reach; n++)
 						{
 							for(int i = 0; i < MAX_MOBS; i++)
 							{
 								if(mobs[i].mob_x == m && mobs[i].mob_y == n)
 								{
+										if(isupper(mobs[i].mob_pic))
+										{
+											if(mobs[i].mob_RGB == 3) // Green is immune to cheap tricks.
+											  continue;
+											else if(mobs[i].mob_RGB == 8) // Reward for killing black boss - instant level up.
+											{
+												kills = reqKills();
+											}
+										}
+
 										kills += 1;
 										totalKills += 1;
+
+										// Note that you won't get any mp for whirlwind kills,
+										// which is intended.
 
 										mobs[i].mob_pic = ' ';
 										mobs[i].mob_x = 0;
@@ -689,28 +894,41 @@ int main(void)
 			}
 		}
 
-		erase();
-
 		if(hp <= 0)
 		{
+			eraseLastLine();
+			move(23, 0);
+			attron(COLOR_PAIR(2));
+			printw("You die...");
+			attroff(COLOR_PAIR(2));
+			getch();
+
+			erase();
 			move(0, 0);
-			printw("You die...\n\n");
+			printw("You are dead.\n\n");
 			printw("Congratulations, you have killed %i minions of the\n", totalKills);
 			printw("despicable Alphabetical Overlord and reached level %i!\n\n", level);
-			printw("Better luck next life.\n\n[press any key to exit]");
+			attron(COLOR_PAIR(6));
+			printw("Better luck next life.");
+			attroff(COLOR_PAIR(6));
+			printw("\n\n[press any key to exit]");
 			getch();
 			gameOn = false;
 		}
 		else if(kills >= reqKills())
 		{
-			move(0, 0);
-			addstr("Level up!\n\n[press any key to continue]");
+			eraseLastLine();
+			move(23, 0);
+			attron(COLOR_PAIR(3));
+			printw("Level up!");
+			attroff(COLOR_PAIR(3));
 			getch();
 
 			kills = 0;
 			level += 1;
+			freeWait = false;
 
-			if(level >= MAX_MOBS) // VICTORY
+			if(level >= 100) // VICTORY
 			{
 				erase();
 				move(0, 0);
@@ -720,53 +938,89 @@ int main(void)
 				addstr("Overlord ran like a chicken. You thought about chasing\n");
 				addstr("after him and finishing him in a satisfactory show of\n");
 				addstr("over-the-top violence and splashes or red ink, but\n");
-				addstr("then you decide for a fate worse than death: You will\n");
-				addstr("eat his lunch and draw obscene images on his walls!\n\n");
+				addstr("then you decided for a fate worse than death: You will\n");
+				addstr("draw obscene images on his walls and eat his lunch!\n\n");
 				addstr("MWHAHAHAHAHA!!! That'll teach him!\n\n[press any key to continue]");
 				getch();
 
 				erase();
 				move(0, 0);
-				addstr("You are victorious!\n\n[press any key to exit]");
+				attron(COLOR_PAIR(5));
+				addstr("You are victorious!\n\n");
+				attroff(COLOR_PAIR(5));
+				addstr("[press any key to exit]");
 				getch();
 
 				gameOn = false;
 			}
 			else
 			{
-				makeMap(x, y);
+				erase();
+				move(0, 0);
+				addstr("Confident in your strength, you descend deeper into\n");
+				addstr("the terrible Vault of Writing.\n\n"); // TODO
 
+				addstr("You also learn a very, very useful piece of lore:\n  ");
+				getTip();
+
+				// You feelin' lucky, punk?
+				if(random(1, 10) == 1)
+				{
+					attron(COLOR_PAIR(3));
+					addstr("\n\nYou feel lucky! ");
+					attroff(COLOR_PAIR(3));
+
+					switch (random(1, 3))
+					{
+						case 1:
+						{
+							addstr("Waiting will be free next level.");
+							freeWait = true;
+							break;
+						}
+						case 2:
+						{
+							addstr("Your wounds heal a bit.");
+							hp += random(1, 2);
+							break;
+						}
+						default:
+						{
+							addstr("You regain some magical energy.");
+							mp += random(1, 3);
+							break;
+						}
+					}
+				}
+
+        // Whirlwind attack powers up:
+				if(level % 30 == 0)
+				{
+					addstr("\n\nYou find a sword more ancient than you're already\n");
+					addstr("carrying just lying on the floor. Your whirlwind\n");
+					addstr("attack is now more deadly than ever. ");
+
+					attron(COLOR_PAIR(2));
+					addstr("Bloody awesome!");
+					attroff(COLOR_PAIR(2));
+				}
+
+				addstr("\n\n[press any key to continue]");
+				getch();
+
+        // Build next level.
 				do
 				{
 					x = random(1, (WIDTH - 1));
 					y = random(1, (HEIGHT - 1));
 				} while(!tryMove(x, y, false));
+
+				makeMap();
 			}
 		}
 	}
 
-  /*
-	while(gameOn)
-  {
-
-    addstr("Try again? [y/n]\n");
-    char q;
-
-    while(true)
-    {
-      q = getch();
-
-      if(q == 'y' || q == 'z')
-      {
-        gameOn = true;
-        break;
-      }
-      else if(q == 'n')
-        break;
-    }
-  }
-  */
-
 	endwin();
+	printf("Thank you for playing!\n");
 	return 0;
 }
