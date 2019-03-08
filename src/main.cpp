@@ -1,15 +1,30 @@
+/*
+ * Endless Descent Into the Dark and Dangerous Dungeons
+ * of the Most Reprehensible Alphabetical Overlord:
+ * Quest for Gore and Vengenace
+ *
+ * main.cpp
+ * (c) red_kangaroo, 2019
+ * Released under the GNU GPL
+ *
+ * Simple coffebreak roguelike written for the Seven Day Roguelike Challenge 2019.
+ *
+ * time_started = 5th March 2019, 20:11
+ * time_finished = 9th March 2019, XXX
+ */
+
 #include <ncurses.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
 #include <algorithm>
 
-#define DEBUG
+//#define DEBUG
 
 /*
-Compiles with:
- cc -o main main.cpp -lncurses
-Or with the makefile, just write "make".
+ * Compiles with:
+ *  cc -o main main.cpp -lncurses
+ * Or with the makefile, just use "make".
  */
 
 // Internal Values
@@ -19,20 +34,17 @@ const int MAX_MOBS = 256;
 const int DRUNK_STEPS = 5000;
 
 // Version number
-static const char VERSION[] = "v0.3";
+static const char VERSION[] = "v0.4";
 
 // Player Stats and such
 int x, y;
-/*#ifdef DEBUG
-int maxhp = 999, hp = maxhp, mp = 10, maxmp = 10;
-int timeStop = 0, kills = 0, totalKills = 0, level = 89;
-bool freeWait = true;
-#else*/
 int maxhp = 10, hp = maxhp, mp = 0, maxmp = 10;
-int timeStop = 0, kills = 0, totalKills = 0, level = 1;
+int kills = 0, totalKills = 0, level = 1;
+// Status effects
+int timeStop = 0, blind = 0, invincible = 0;
 bool freeWait = false;
-//#endif
 
+// MAP
 char map[WIDTH][HEIGHT];
 
 // Mobs
@@ -98,8 +110,7 @@ bool tryMove(int m, int n, bool kill)
 						}
 						case 4: // COLOR_YELLOW
 						{
-							hp += 2;
-							mp += 1;
+							invincible = 10;
 							break;
 						}
 						case 5: // COLOR_BLUE
@@ -145,13 +156,6 @@ bool tryMove(int m, int n, bool kill)
 	if(map[m][n] == '.')
 	  return true;
 
-	/*
-	// Jewels of power
-	if(map[m][n] == '*')
-	  // TODO
-	  return true;
-	*/
-
 	return false;
 }
 
@@ -178,14 +182,17 @@ bool ghostMove(int m, int n)
 
 void mobAttack(int i)
 {
-  if(mobs[i].mob_RGB == 6) // magenta
-  {
-    hp -= 2;
-  }
-  else
-  {
-    hp -= 1;
-  }
+	if(invincible <= 0)
+	{
+		if(mobs[i].mob_RGB == 6) // Magenta mobs
+	  {
+	    hp -= 2;
+	  }
+	  else
+	  {
+	    hp -= 1;
+	  }
+	}
 
   // Letters with tittles drain MP.
 	if((mobs[i].mob_pic == 'i' || mobs[i].mob_pic == 'j') && mp > 0)
@@ -227,6 +234,21 @@ void mobAttack(int i)
 			}
 			default: break; // Blue, cyan, magenta and black have effects elsewhere.
 		}
+	}
+
+	switch (mobs[i].mob_pic)
+	{
+		// Voiceless consonants will blind you.
+		case 'f': case 'k': case 'p':
+		case 's': case 't': case 'F':
+    case 'K': case 'P': case 'S':
+		case 'T':
+		{
+			if(blind <= 0)
+				blind = random(1, 4);
+			break;
+		}
+		default: break;
 	}
 
   return;
@@ -588,7 +610,7 @@ void eraseLastLine()
 void getTip()
 {
 	attron(COLOR_PAIR(5));
-	switch (random(1, 22))
+	switch (random(1, 25))
 	{
 		case 1: addstr("You cannot have more mana than maximum, so use it."); break;
 		case 2: addstr("The dungeon is not actually endless. The Dark Lord awaits."); break;
@@ -612,13 +634,15 @@ void getTip()
 		case 20: addstr("Waiting is not free, unless it is."); break;
 		case 21: addstr("Sometimes, you are lucky."); break;
 		case 22: addstr("Your whirlwind attack will eventually improve."); break;
+		case 23: addstr("Voiceless consonants may blind you."); break;
+		case 24: addstr("Rage makes you invincible."); break;
+		case 25: addstr("Loosing is fun!"); break;
 		default: addstr("You will die."); break;
 	}
 	attroff(COLOR_PAIR(5));
 	return;
 }
 
-/* MAIN LOOP */
 int main(void)
 {
 	printf("Descending into the dungeon...\n");
@@ -652,35 +676,50 @@ int main(void)
   // Create dungeon
 	makeMap();
 
+	/* MAIN LOOP */
 	while(gameOn)
 	{
-		for(int m = 0; m < WIDTH; m++)
-			for(int n = 0; n < HEIGHT; n++)
-			{
-				move(n, m);
-				addch(map[m][n]);
-			}
+		erase();
 
 		if(timeStop <= 0)
 			mobMove();
 		else
 			timeStop -= 1;
 
-		for(int i = 0; i < MAX_MOBS; i++)
-		{
-			if(mobs[i].mob_pic == ' ')
-				continue;
+		for(int m = 0; m < WIDTH; m++)
+			for(int n = 0; n < HEIGHT; n++)
+			{
+				if(map[m][n] == '.' && blind > 0)
+				  continue;
+				// Walls are always shown.
 
-			move(mobs[i].mob_y, mobs[i].mob_x);
-			attron(COLOR_PAIR(mobs[i].mob_RGB));
-			addch(mobs[i].mob_pic);
-			attroff(COLOR_PAIR(mobs[i].mob_RGB));
+				move(n, m);
+				addch(map[m][n]);
+			}
+
+		if(blind <= 0)
+		{
+			for(int i = 0; i < MAX_MOBS; i++)
+			{
+				if(mobs[i].mob_pic == ' ')
+					continue;
+
+				move(mobs[i].mob_y, mobs[i].mob_x);
+				attron(COLOR_PAIR(mobs[i].mob_RGB));
+				addch(mobs[i].mob_pic);
+				attroff(COLOR_PAIR(mobs[i].mob_RGB));
+			}
 		}
+		else
+		  blind -= 1;
 
 		if(hp > maxhp)
 			hp = maxhp;
 		if(mp > maxmp)
 			mp = maxmp;
+
+    if(invincible > 0)
+		  invincible -= 1;
 
 		move(22, 0);
 		printw("Health: %i/%i  Mana: %i/%i  Kills: %i/%i  Level: %i  ", hp, maxhp, mp, maxmp, kills, reqKills(), level);
@@ -690,16 +729,23 @@ int main(void)
 		printw("   (.)wait   (t)eleport   (w)hirlwind attack   (f)reeze time   (h)eal   (q)uit");
 
     // Status effects
-		if(timeStop > 0)
+		if(invincible > 1)
 		{
-			move(22, WIDTH - 20);
+			move(22, WIDTH - 24);
+			attron(COLOR_PAIR(2));
+			addstr("Rage");
+			attroff(COLOR_PAIR(2));
+		}
+		if(timeStop > 1)
+		{
+			move(22, WIDTH - 19);
 			attron(COLOR_PAIR(7));
 			addstr("Time stop");
 			attroff(COLOR_PAIR(7));
 		}
 		if(freeWait)
 		{
-			move(22, WIDTH - 10);
+			move(22, WIDTH - 9);
 			attron(COLOR_PAIR(3));
 			addstr("Free wait");
 			attroff(COLOR_PAIR(3));
@@ -957,8 +1003,9 @@ int main(void)
 			{
 				erase();
 				move(0, 0);
-				addstr("Confident in your strength, you descend deeper into\n");
-				addstr("the terrible Vault of Writing.\n\n"); // TODO
+				addstr("Covered from head to toe in inky gore and absolutely\n");
+				addstr("confident in your strength, you descend deeper into\n");
+				addstr("the Vault of Writing. You will have your revenge!\n\n");
 
 				addstr("You also learn a very, very useful piece of lore:\n  ");
 				getTip();
@@ -991,6 +1038,15 @@ int main(void)
 							break;
 						}
 					}
+				}
+				if(random(1, 200) < level)
+				{
+					attron(COLOR_PAIR(2));
+					addstr("\n\nWAAAAARRRGH! ");
+					attroff(COLOR_PAIR(2));
+
+					addstr("You feel invincible!");
+					invincible = 10;
 				}
 
         // Whirlwind attack powers up:

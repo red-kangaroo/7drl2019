@@ -1,13 +1,7 @@
 * image to README
 * Dark Lord fight!
-* dungeon generator?
+* dungeon generator, mazes?
 * express elevators?
 
 * minor special powers for groups:
-   bdfhkl(t)
    gjpqy
-* invulnerability (god mode?)
-* blindness
-
-if(random(1, 100) < level)
-  maze
