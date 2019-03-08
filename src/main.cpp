@@ -18,12 +18,13 @@
 #include <time.h>
 #include <ctype.h>
 #include <algorithm>
+#include <cmath>
 
 //#define DEBUG
 
 /*
  * Compiles with:
- *  cc -o main main.cpp -lncurses
+ *  cc -o main main.cpp -lncurses -lm
  * Or with the makefile, just use "make".
  */
 
@@ -32,6 +33,7 @@ const int WIDTH = 80;
 const int HEIGHT = 22;
 const int MAX_MOBS = 256;
 const int DRUNK_STEPS = 5000;
+const int LIGHT = 8;
 
 // Version number
 static const char VERSION[] = "v0.4";
@@ -607,6 +609,35 @@ void eraseLastLine()
 	return;
 }
 
+bool checkFov(int m, int n)
+{
+	// Is map[m][n] visible?
+	float vx,vy,ox,oy,l;
+
+	vx = (float)(m - x);
+	vy = (float)(n - y);
+	ox = (float)x;
+	oy = (float)y;
+	l = std::sqrt((vx * vx) + (vy * vy));
+
+	if(l > LIGHT)
+	  return false;
+
+	vx /= (l * 8);
+	vy /= (l * 8);
+
+	for(int i = 0; i < (int)l * 8; i++)
+	{
+		if(map[(int)ox][(int)oy] == '#')
+			return false;
+
+		ox += vx;
+		oy += vy;
+	}
+
+	return true;
+}
+
 void getTip()
 {
 	attron(COLOR_PAIR(5));
@@ -689,7 +720,7 @@ int main(void)
 		for(int m = 0; m < WIDTH; m++)
 			for(int n = 0; n < HEIGHT; n++)
 			{
-				if(map[m][n] == '.' && blind > 0)
+				if(map[m][n] == '.' && (blind > 0 || !checkFov(m, n)))
 				  continue;
 				// Walls are always shown.
 
@@ -701,7 +732,7 @@ int main(void)
 		{
 			for(int i = 0; i < MAX_MOBS; i++)
 			{
-				if(mobs[i].mob_pic == ' ')
+				if(mobs[i].mob_pic == ' ' || !checkFov(mobs[i].mob_x, mobs[i].mob_y))
 					continue;
 
 				move(mobs[i].mob_y, mobs[i].mob_x);
