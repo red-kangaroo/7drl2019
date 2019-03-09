@@ -21,7 +21,9 @@ $ ./7drl
 ```
 
 On Linux, you can open terminal in a folder by right clicking and selecting to
+
 open terminal here, the same can be done on Windows by holding Shift and right
+
 clicking.
 
 ### Building
