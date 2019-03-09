@@ -14,7 +14,19 @@ Simple, silly coffebreak roguelike for the Seven Day Roguelike Challenge 2019.
 
 ### How to play
 
-Open terminal from the game directory and type the following:
+Unzip and open the game directory, then open terminal there and type:
+
+```
+$ ./7drl
+```
+
+On Linux, you can open terminal in a folder by right clicking and selecting to
+open terminal here, the same can be done on Windows by holding Shift and right
+clicking.
+
+### Building
+
+Use the following commands:
 
 ```
 $ cd src
@@ -35,7 +47,18 @@ Use mana to
   (w)hirlwind attack [3 mana]
   (f)reeze time [5 mana]
   (h)eal [10 mana]
+
 Gain mana by killing enemies.
+
+Press (?) for more help.
 ```
 
 Have fun!
+
+### Screenshots
+
+![Screenshot](doc/7drl_1.png)
+
+![Screenshot](doc/7drl_2.png)
+
+![Screenshot](doc/7drl_3.png)

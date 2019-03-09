@@ -10,7 +10,7 @@
  * Simple coffebreak roguelike written for the Seven Day Roguelike Challenge 2019.
  *
  * time_started = 5th March 2019, 20:11
- * time_finished = 9th March 2019, XXX
+ * time_finished = 9th March 2019, 21:01
  */
 
 #include <ncurses.h>
@@ -34,7 +34,7 @@ const int MAX_MOBS = 256;
 const int DRUNK_STEPS = 5000;
 
 // Version number
-static const char VERSION[] = "v0.4";
+static const char VERSION[] = "v0.5";
 
 // Player Stats and such
 int x, y;
@@ -481,35 +481,68 @@ int reqKills()
 
 void makeMap()
 {
-	int m,n,rng;
+	int m,n,rng,cnt = 0;
 
-	for(m = 0; m < WIDTH; m++)
-	  for(n = 0; n < HEIGHT; n++)
-		{
-			map[m][n] = '#';
-		}
-
-	m = x;
-	n = y;
-
-	for(int i = 0; i < DRUNK_STEPS; i++)
+  while(cnt < 800) // This should make sure that we reject small caves.
 	{
-		map[m][n] = '.';
-		rng = random(0, 4);
+		cnt = 0;
 
-		switch(rng)
+		// Reset clear map.
+		for(m = 0; m < WIDTH; m++)
+			for(n = 0; n < HEIGHT; n++)
+			{
+				map[m][n] = '#';
+			}
+
+		m = x;
+		n = y;
+
+		// Drunken walk cave
+		for(int i = 0; i < DRUNK_STEPS; i++)
 		{
-			case 0: if(m < WIDTH - 2) m++; break;
-			case 1: if(m > 1) m--; break;
-			case 2: if(n < HEIGHT - 2) n++; break;
-			case 3: if(n > 1) n--; break;
-			default: m = x; n = y; break;
+			if(map[m][n] == '#')
+			{
+				map[m][n] = '.';
+				cnt += 1;
+			}
+
+			rng = random(0, 4);
+
+			switch(rng)
+			{
+				case 0: if(m < WIDTH - 2) m++; break;
+				case 1: if(m > 1) m--; break;
+				case 2: if(n < HEIGHT - 2) n++; break;
+				case 3: if(n > 1) n--; break;
+				default: m = x; n = y; break;
+			}
 		}
 	}
 
-	int mob_no = reqKills();
-	if(level % 2 == 0) // Even floors have a bonus boss.
-	  mob_no += 1;
+  bool addWall; // Add some free standing walls, because otherwise large open
+	              // areas are way too deadly.
+	for(int i = 0; i < DRUNK_STEPS; i++)
+	{
+		m = random(1, (WIDTH - 1));
+		n = random(1, (HEIGHT - 1));
+		addWall = true;
+
+		for(int o = m - 1; o <= m + 1; o++)
+		  for(int p = n - 1; p <= n + 1; p++)
+			{
+				if(map[o][p] == '#')
+				{
+					addWall = false;
+					break;
+				}
+			}
+
+		if(addWall == true)
+		  map[m][n] == '#';
+	}
+
+  // Spawn mobs.
+	int mob_no = reqKills() + random(1, 3);
 
 	for(int i = 0; i < mob_no; i++)
 	{
@@ -525,7 +558,7 @@ void makeMap()
 		mobs[i].mob_x = m;
 		mobs[i].mob_y = n;
 
-    if((level % 2 == 0) && i == 0) // Add one capital boss per even floor.
+    if(((level % 2 == 0) && i == 0) || (random(1, 200) < level)) // Add bosses.
 		{
 			mobs[i].mob_pic = (char)random(65, 90);
 			mobs[i].mob_RGB = random(1, 8); // Hmm, I can't seem to randomly get black boss...
@@ -538,6 +571,7 @@ void makeMap()
 	}
 
   timeStop = 1; // Free turn at beginning to prevent dying to starting swarmed.
+	              // Also resets timeStop if we had it from previous floor.
 	return;
 }
 
@@ -594,7 +628,7 @@ void startScreen()
   addstr("\n\nControls:\n");
   attroff(COLOR_PAIR(5));
 	addstr("Arrow keys to move, or (q)uit.\n");
-	addstr("Use mana to\n  (.)wait [1 mana]\n  (t)eleport [3 mana]\n");
+	addstr("Use mana to\n  (.)wait [1 mana]\n  (t)eleport [2 mana]\n");
 	addstr("  (w)hirlwind attack [3 mana]\n  (f)reeze time [5 mana]\n  (h)eal [10 mana]\n");
 	addstr("Gain mana by killing enemies.\n\n[press any key to start]");
 	getch();
@@ -610,11 +644,11 @@ void eraseLastLine()
 void getTip()
 {
 	attron(COLOR_PAIR(5));
-	switch (random(1, 25))
+	switch (random(1, 30))
 	{
 		case 1: addstr("You cannot have more mana than maximum, so use it."); break;
 		case 2: addstr("The dungeon is not actually endless. The Dark Lord awaits."); break;
-		case 3: addstr("There is a capital boss on every even level."); break;
+		case 3: addstr("There is at least one capital boss per two levels."); break;
 		case 4: addstr("Killing bosses will grant you various rewards."); break;
 		case 5: addstr("Magenta monsters deal double damage."); break;
 		case 6: addstr("Cyan bosses have two lives."); break;
@@ -627,7 +661,7 @@ void getTip()
 		case 13: addstr("Letters with a tittle drain mana."); break;
 		case 14: addstr("Vowels can move diagonally."); break;
 		case 15: addstr("Xs can ghost through walls."); break;
-		case 16: addstr("Level 100 is very special."); break;
+		case 16: addstr("Level 100 is very special. Can you get so deep?"); break;
 		case 17: addstr("Use whirlwind attack to prevent getting swarmed."); break;
 		case 18: addstr("Don't hesitate to teleport in a pickle."); break;
 		case 19: addstr("Frozen time may help against lines of enemies. But it will run out."); break;
@@ -637,6 +671,8 @@ void getTip()
 		case 23: addstr("Voiceless consonants may blind you."); break;
 		case 24: addstr("Rage makes you invincible."); break;
 		case 25: addstr("Loosing is fun!"); break;
+		case 26: addstr("Use terrain to split enemy groups."); break;
+		case 27: addstr("Your healing spell will slowly improve."); break;
 		default: addstr("You will die."); break;
 	}
 	attroff(COLOR_PAIR(5));
@@ -736,7 +772,7 @@ int main(void)
 			addstr("Rage");
 			attroff(COLOR_PAIR(2));
 		}
-		if(timeStop > 1)
+		if(timeStop > 0)
 		{
 			move(22, WIDTH - 19);
 			attron(COLOR_PAIR(7));
@@ -835,7 +871,7 @@ int main(void)
 				{
 					if(mp >= 10 && hp < maxhp)
 					{
-						hp += 1;
+						hp += (1 + (level / 10));
 						mp -= 10;
 						input = true;
 					}
@@ -851,7 +887,7 @@ int main(void)
 				}
 				case 't': // teleportation
 				{
-					if(mp < 3) break;
+					if(mp < 2) break;
 
 					do
 					{
@@ -859,7 +895,7 @@ int main(void)
 						y = random(1, (HEIGHT - 1));
 					} while(!tryMove(x, y, false));
 
-					mp -= 3;
+					mp -= 2;
 					input = true;
 					break;
 				}
@@ -912,6 +948,12 @@ int main(void)
 					input = true;
 					break;
 				}
+				case 'n': // new level
+				{
+					makeMap();
+					input = true;
+					break;
+				}
 #endif
 				case '?': // help screen
 				{
@@ -922,18 +964,27 @@ int main(void)
 					addstr("Objective:\n");
 					attroff(COLOR_PAIR(5));
 					addstr("Kill everything, whether it moves or not.\n\n");
+					addstr("Slay bosses to gain power.\n\n");
+					addstr("Use magic and don't get surrounded.\n\n");
 
 					attron(COLOR_PAIR(5));
 					addstr("Controls:\n");
 					attroff(COLOR_PAIR(5));
-					addstr("Arrow keys to move, or (q)uit.\n");
-					addstr("Use mana to\n  (.)wait [1 mana]\n  (t)eleport [3 mana]\n");
-					addstr("  (w)hirlwind attack [3 mana]\n  (f)reeze time [5 mana]\n  (h)eal [10 mana]\n");
-					addstr("Gain mana by killing enemies.\n\n[press any key to continue]");
+					addstr("Arrow keys to move, or (q)uit.\n\n");
+					addstr("Use mana to\n  (.)wait [1 mana]\n  (t)eleport [2 mana]\n");
+					addstr("  (w)hirlwind attack [3 mana]\n  (f)reeze time [5 mana]\n  (h)eal [10 mana]\n\n");
+					addstr("Gain mana by killing enemies.\n\n");
+					addstr("Some of your powers will improve with depth.\n\n");
+
+					attron(COLOR_PAIR(3));
+					addstr("Enjoy the game!\n\n");
+					attroff(COLOR_PAIR(3));
+
+					addstr("[press any key to continue]");
 					getch();
 
 					input = true;
-					timeStop = 1; // So that we don't loose a turn by looking at help.
+					timeStop += 1; // So that we don't loose a turn by looking at help.
 					break;
 				}
 				default: break;
@@ -1059,6 +1110,17 @@ int main(void)
 					attron(COLOR_PAIR(2));
 					addstr("Bloody awesome!");
 					attroff(COLOR_PAIR(2));
+				}
+				// Healing spell powers up:
+				if(level % 10 == 0)
+				{
+					addstr("\n\nYou find a textbook on anatomy on one of the corpses.\n");
+					addstr("With the newfound knowledge, your magic will heal you\n");
+					addstr("better. ");
+
+					attron(COLOR_PAIR(3));
+					addstr("It's just a flesh wound, baby!");
+					attroff(COLOR_PAIR(3));
 				}
 
 				addstr("\n\n[press any key to continue]");
