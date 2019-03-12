@@ -4,31 +4,35 @@
 ## Into the Dark and Dangerous Dungeons
 ### of the
 #### Most Reprehensible Alphabetical Overlord:
-##### Quest for Gore and Vengenace
+##### Quest for Gore and Vengeance
 </div>
 <br/>
 <br/>
 <br/>
-Simple, silly coffebreak roguelike for the Seven Day Roguelike Challenge 2019.
+Simple, silly coffeebreak roguelike for the Seven Day Roguelike Challenge 2019.
 
 
 ### How to play
 
-Unzip and open the game directory, then open terminal there and type:
+Unzip and open the game directory. On **Linux**, you can then open terminal in
+
+the folder by right clicking and selecting to open terminal here, then type:
 
 ```
 $ ./7drl
 ```
 
-On Linux, you can open terminal in a folder by right clicking and selecting to
+On **Windows** the same can be done by holding Shift and right clicking, then
 
-open terminal here, the same can be done on Windows by holding Shift and right
+selecting to open terminal here. Then type:
 
-clicking.
+```
+$ 7drl.exe
+```
 
 ### Building
 
-Use the following commands:
+On Linux, use the following commands:
 
 ```
 $ cd src
@@ -45,7 +49,7 @@ Arrow keys to move, or (q)uit.
 
 Use mana to
   (.)wait [1 mana]
-  (t)eleport [3 mana]
+  (t)eleport [2 mana]
   (w)hirlwind attack [3 mana]
   (f)reeze time [5 mana]
   (h)eal [10 mana]

@@ -1,13 +1,13 @@
 /*
  * Endless Descent Into the Dark and Dangerous Dungeons
  * of the Most Reprehensible Alphabetical Overlord:
- * Quest for Gore and Vengenace
+ * Quest for Gore and Vengeance
  *
  * main.cpp
  * (c) red_kangaroo, 2019
  * Released under the GNU GPL
  *
- * Simple coffebreak roguelike written for the Seven Day Roguelike Challenge 2019.
+ * Simple coffeebreak roguelike written for the Seven Day Roguelike Challenge 2019.
  *
  * time_started = 5th March 2019, 20:11
  * time_finished = 9th March 2019, 21:01
@@ -22,9 +22,12 @@
 //#define DEBUG
 
 /*
- * Compiles with:
- *  cc -o main main.cpp -lncurses
- * Or with the makefile, just use "make".
+ * BUILDING:
+ *  Linux
+ *   cc -o main main.cpp -lncurses
+ *   or with the makefile, just use "make"
+ *  Windows
+ *  i686-w64-mingw32-gcc -o main main.cpp -lncurses
  */
 
 // Internal Values
