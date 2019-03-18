@@ -99,7 +99,13 @@ bool tryMove(int m, int n, bool kill)
 					switch (mobs[i].mob_RGB)
 					{
 						case 1: maxhp += 1; break; // COLOR_WHITE
-						case 2: hp = maxhp; break; // COLOR_RED
+						case 2: // COLOR_RED
+						{
+							//hp = maxhp;
+							// Nerfed:
+							hp += (maxhp * (100 - level) / 100) + 1;
+							break;
+						}
 						case 3: // COLOR_GREEN
 						{
 							if(timeStop > 0)
@@ -187,9 +193,13 @@ void mobAttack(int i)
 {
 	if(invincible <= 0)
 	{
-		if(mobs[i].mob_RGB == 6) // Magenta mobs
+		if(mobs[i].mob_RGB == 6) // COLOR_MAGENTA
 	  {
 	    hp -= 2;
+	  }
+		if(mobs[i].mob_RGB == 7) // COLOR_CYAN
+	  {
+	    hp -= (1 + (level / 10));
 	  }
 	  else
 	  {
@@ -209,7 +219,7 @@ void mobAttack(int i)
 		{
 			case 1: // COLOR_WHITE
 			{
-				maxhp -= 1;
+				maxhp *= 0.9; // Increased from static -1.
 				break;
 			}
 			case 2: // COLOR_RED
@@ -224,6 +234,7 @@ void mobAttack(int i)
 			}
 			case 3: // COLOR_GREEN
 			{
+				mp -= 10;
 				maxmp -= 1;
 				break;
 			}
@@ -235,7 +246,12 @@ void mobAttack(int i)
         hp = hp - mp;
 				break;
 			}
-			default: break; // Blue, cyan, magenta and black have effects elsewhere.
+			case 6: // COLOR_MAGENTA
+			{
+				hp -= random(1, level); // Even more damage, magenta bosses hit hard.
+				break;
+			}
+			default: break; // Blue, cyan and black have effects elsewhere.
 		}
 	}
 
@@ -278,17 +294,29 @@ void mobMove()
 				if(mobs[j].mob_pic == ' ')
 				{
 					int p, q;
+					bool ok = false;
 
-					do
+					// Find free space near player.
+					for(int w = 0; w < 20; w++)
 					{
-						p = random(1, (WIDTH - 1));
-						q = random(1, (HEIGHT - 1));
-					} while(!tryMove(p, q, false));
+						p = random(x - 2, x + 2);
+						q = random(y - 2, y + 2);
 
-					mobs[j].mob_x = p;
-					mobs[j].mob_y = q;
-					mobs[j].mob_pic = (char)random(97, 122);
-					mobs[j].mob_RGB = random(2, 7);
+						if(tryMove(p, q, false))
+						{
+							ok = true; // Found one!
+							break;
+						}
+					}
+
+          // Summoning
+					if(ok = true)
+					{
+						mobs[j].mob_x = p;
+						mobs[j].mob_y = q;
+						mobs[j].mob_pic = (char)random(97, 122);
+						mobs[j].mob_RGB = random(2, 7);
+					}
 
 					continue; // Pass the turn.
 				}
@@ -564,7 +592,7 @@ void makeMap()
     if(((level % 2 == 0) && i == 0) || (random(1, 200) < level)) // Add bosses.
 		{
 			mobs[i].mob_pic = (char)random(65, 90);
-			mobs[i].mob_RGB = random(1, 8); // Hmm, I can't seem to randomly get black boss...
+			mobs[i].mob_RGB = random(1, 9); // Hmm, I can't seem to randomly get black boss...
 		}
 		else
 		{
@@ -595,6 +623,7 @@ void initColors()
 	init_pair(6, COLOR_MAGENTA, COLOR_BLACK);
 	init_pair(7, COLOR_CYAN, COLOR_BLACK);
 	init_pair(8, COLOR_BLACK, COLOR_WHITE);
+	init_pair(9, COLOR_BLACK, COLOR_BLACK);
 }
 
 void startScreen()
@@ -672,7 +701,7 @@ void getTip()
 		case 21: addstr("Sometimes, you are lucky."); break;
 		case 22: addstr("Your whirlwind attack will eventually improve."); break;
 		case 23: addstr("Voiceless consonants may blind you."); break;
-		case 24: addstr("Rage makes you invincible."); break;
+		case 24: addstr("Warding makes you invincible."); break;
 		case 25: addstr("Loosing is fun!"); break;
 		case 26: addstr("Use terrain to split enemy groups."); break;
 		case 27: addstr("Your healing spell will slowly improve."); break;
@@ -756,6 +785,8 @@ int main(void)
 			hp = maxhp;
 		if(mp > maxmp)
 			mp = maxmp;
+		if(mp < 0)
+		  mp = 0;
 
     if(invincible > 0)
 		  invincible -= 1;
@@ -771,9 +802,9 @@ int main(void)
 		if(invincible > 1)
 		{
 			move(22, WIDTH - 24);
-			attron(COLOR_PAIR(2));
-			addstr("Rage");
-			attroff(COLOR_PAIR(2));
+			attron(COLOR_PAIR(4));
+			addstr("Ward");
+			attroff(COLOR_PAIR(4));
 		}
 		if(timeStop > 0)
 		{

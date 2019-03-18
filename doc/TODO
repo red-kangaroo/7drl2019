@@ -5,3 +5,14 @@
 
 * minor special powers for groups:
    gjpqy
+
+Fix
+===
+* X take no time to kill
+* cyan boss should redraw screen on death
+
+Enhance
+=======
+* can only be hurt when horizontal, not vertical
+* when red teleport, they change floor into lava
+* floor: glyph of warding, maybe instead of ward status
