@@ -37,7 +37,7 @@ const int MAX_MOBS = 256;
 const int DRUNK_STEPS = 5000;
 
 // Version number
-static const char VERSION[] = "v0.5";
+static const char VERSION[] = "v0.6";
 
 // Player Stats and such
 int x, y;
@@ -76,6 +76,10 @@ bool rand_2()
 bool tryMove(int m, int n, bool kill)
 {
 	if(m < 0 || m >= WIDTH || n < 0 || n >= HEIGHT)
+	  return false;
+
+  // You cannot attack monsters in walls.
+	if(map[m][n] == '#')
 	  return false;
 
 	for(int i = 0; i < MAX_MOBS; i++)
@@ -135,6 +139,14 @@ bool tryMove(int m, int n, bool kill)
 							timeStop -= 1; // Loose one turn, otherwise it would return as not
 							               // taking any time.
               maxmp += 1;    // Still gain a reward as you technically "killed" it.
+
+							// Must redraw the mob here, or they won't show during timeStop.
+							move(mobs[i].mob_y, mobs[i].mob_x);
+							attron(COLOR_PAIR(mobs[i].mob_RGB));
+							addch(mobs[i].mob_pic);
+							attroff(COLOR_PAIR(mobs[i].mob_RGB));
+							move(y, x);
+
 							return false;  // This should work instead of break, right?
 						}
 						case 8: // COLOR_BLACK
@@ -162,10 +174,7 @@ bool tryMove(int m, int n, bool kill)
 
   // This is deliberate fallthrough so that the player moves forward when attacking
 	// and cannot just kill monsters standing in a line.
-	if(map[m][n] == '.')
-	  return true;
-
-	return false;
+	return true;
 }
 
 bool ghostMove(int m, int n)
@@ -206,6 +215,8 @@ void mobAttack(int i)
 	    hp -= 1;
 	  }
 	}
+	else
+	  invincible -= 1;
 
   // Letters with tittles drain MP.
 	if((mobs[i].mob_pic == 'i' || mobs[i].mob_pic == 'j') && mp > 0)
@@ -248,7 +259,11 @@ void mobAttack(int i)
 			}
 			case 6: // COLOR_MAGENTA
 			{
-				hp -= random(1, level); // Even more damage, magenta bosses hit hard.
+				if(invincible <= 0)
+				  hp -= random(1, level); // Even more damage, magenta bosses hit hard.
+				else
+				  invincible -= 1;
+
 				break;
 			}
 			default: break; // Blue, cyan and black have effects elsewhere.
@@ -264,7 +279,7 @@ void mobAttack(int i)
 		case 'T':
 		{
 			if(blind <= 0)
-				blind = random(1, 4);
+				blind = random(2, 5);
 			break;
 		}
 		default: break;
@@ -314,8 +329,8 @@ void mobMove()
 					{
 						mobs[j].mob_x = p;
 						mobs[j].mob_y = q;
-						mobs[j].mob_pic = (char)random(97, 122);
-						mobs[j].mob_RGB = random(2, 7);
+						mobs[j].mob_pic = (char)random(97, 123);
+						mobs[j].mob_RGB = random(2, 8);
 					}
 
 					continue; // Pass the turn.
@@ -591,13 +606,13 @@ void makeMap()
 
     if(((level % 2 == 0) && i == 0) || (random(1, 200) < level)) // Add bosses.
 		{
-			mobs[i].mob_pic = (char)random(65, 90);
+			mobs[i].mob_pic = (char)random(65, 91);
 			mobs[i].mob_RGB = random(1, 9); // Hmm, I can't seem to randomly get black boss...
 		}
 		else
 		{
-			mobs[i].mob_pic = (char)random(97, 122);
-			mobs[i].mob_RGB = random(2, 7); // Don't use white for mob_RGB, they are hard to see.
+			mobs[i].mob_pic = (char)random(97, 123);
+			mobs[i].mob_RGB = random(2, 8); // Don't use white for mob_RGB, they are hard to see.
 		}
 	}
 
@@ -787,9 +802,6 @@ int main(void)
 			mp = maxmp;
 		if(mp < 0)
 		  mp = 0;
-
-    if(invincible > 0)
-		  invincible -= 1;
 
 		move(22, 0);
 		printw("Health: %i/%i  Mana: %i/%i  Kills: %i/%i  Level: %i  ", hp, maxhp, mp, maxmp, kills, reqKills(), level);
@@ -1102,7 +1114,7 @@ int main(void)
 					addstr("\n\nYou feel lucky! ");
 					attroff(COLOR_PAIR(3));
 
-					switch (random(1, 3))
+					switch (random(1, 5))
 					{
 						case 1:
 						{
@@ -1116,22 +1128,19 @@ int main(void)
 							hp += random(1, 2);
 							break;
 						}
-						default:
+						case 3:
 						{
 							addstr("You regain some magical energy.");
 							mp += random(1, 3);
 							break;
 						}
+						default:
+						{
+							addstr("You feel invincible!");
+							invincible = 10;
+							break;
+						}
 					}
-				}
-				if(random(1, 200) < level)
-				{
-					attron(COLOR_PAIR(2));
-					addstr("\n\nWAAAAARRRGH! ");
-					attroff(COLOR_PAIR(2));
-
-					addstr("You feel invincible!");
-					invincible = 10;
 				}
 
         // Whirlwind attack powers up:
