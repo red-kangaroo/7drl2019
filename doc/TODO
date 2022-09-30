@@ -2,12 +2,23 @@
 * Dark Lord fight!
 * dungeon generator, mazes?
 * express elevators?
+* portal '*' that teleports anything that wanders in
+* trap '^' dealing 1 damage
 
 * minor special powers for groups:
    gjpqy
+
+* weapon names for some flavour
 
 Enhance
 =======
 * can only be hurt when horizontal, not vertical
 * when red teleport, they change floor into lava
 * floor: glyph of warding, maybe instead of ward status
+
+* move randomly and unpredictabely, not following
+* leave bomb, explodes after 3 turns destroying creatures and terrain
+* knock back
+* create traps (boss?)
+* glow, then shoots beams in + (lowercase) or * (uppercase) formation
+* shoot projectiles (entity that moves at normal speed in one direction until hit, maybe some destroying walls or exploding)
